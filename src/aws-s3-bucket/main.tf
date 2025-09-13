@@ -25,7 +25,7 @@ resource "aws_dynamodb_table" "terraform_lock" {
   name         = "terraform-lock"
   billing_mode = "PAY_PER_REQUEST"
   hash_key     = "LockID"
-
+  
   attribute {
     name = "LockID"
     type = "S"
@@ -36,96 +36,13 @@ resource "aws_dynamodb_table" "terraform_lock" {
   }
 }
 
-# IAM Role for EKS Cluster
-resource "aws_iam_role" "eks_cluster_role" {
-  name = "eks-cluster-role"
-
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [{
-      Effect = "Allow"
-      Principal = {
-        Service = "eks.amazonaws.com"
-      }
-      Action = "sts:AssumeRole"
-    }]
-  })
-}
-
-resource "aws_iam_role_policy_attachment" "eks_cluster_policy" {
-  role       = aws_iam_role.eks_cluster_role.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonEKSClusterPolicy"
-}
-
-# IAM Role for Node Group
-resource "aws_iam_role" "eks_node_role" {
-  name = "eks-node-role"
-
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [{
-      Effect = "Allow"
-      Principal = {
-        Service = "ec2.amazonaws.com"
-      }
-      Action = "sts:AssumeRole"
-    }]
-  })
-}
-
-resource "aws_iam_role_policy_attachment" "eks_worker_node_policy" {
-  role       = aws_iam_role.eks_node_role.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy"
-}
-
-resource "aws_iam_role_policy_attachment" "eks_cni_policy" {
-  role       = aws_iam_role.eks_node_role.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"
-}
-
-resource "aws_iam_role_policy_attachment" "eks_ecr_policy" {
-  role       = aws_iam_role.eks_node_role.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
-}
-
-# EKS Cluster (must specify at least 2 subnets)
-resource "aws_eks_cluster" "eks" {
-  name     = "in28minutes-cluster"
-  role_arn = aws_iam_role.eks_cluster_role.arn
-
-  vpc_config {
-    subnet_ids = [
-      "subnet-0db4b038e3e34bb51",
-      "subnet-0abcdef1234567890" # <-- Replace with your actual second subnet ID
-    ]
-  }
-
-  version = "1.24"
-
-  tags = {
-    Environment = "Production"
-  }
-}
-
-# EKS Managed Node Group
-resource "aws_eks_node_group" "default" {
-  cluster_name    = aws_eks_cluster.eks.name
-  node_group_name = "default-node-group"
-  node_role_arn   = aws_iam_role.eks_node_role.arn
+# Call your custom EKS module
+module "eks_cluster" {
+  source          = "./modules/eks_cluster"
+  cluster_name    = "in28minutes-cluster"
+  cluster_version = "1.24"
   subnet_ids      = [
     "subnet-0db4b038e3e34bb51",
-    "subnet-0abcdef1234567890" # <-- Replace with your actual second subnet ID
+    "subnet-0abcdef1234567890" # Replace with your actual subnet ID
   ]
-
-  scaling_config {
-    desired_size = 3
-    max_size     = 5
-    min_size     = 3
-  }
-
-  instance_types = ["t2.micro"]
-
-  tags = {
-    Environment = "Production"
-  }
 }
