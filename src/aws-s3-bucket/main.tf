@@ -12,7 +12,7 @@ resource "aws_instance" "abhishek" {
 }
 
 resource "aws_s3_bucket" "s3_bucket" {
-  bucket = "terraform-backend-bucket1"            # Match this with your manually created bucket
+  bucket = "terraform-bakcend-bucket1"            # Match this with your manually created bucket
   tags = {
     Environment = "Terraform-Backend"
   }
