@@ -57,18 +57,6 @@ resource "aws_iam_role_policy_attachment" "eks_cluster_policy" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKSClusterPolicy"
 }
 
-# EKS Cluster
-resource "aws_eks_cluster" "eks" {
-  name     = "in28minutes-cluster"
-  role_arn = aws_iam_role.eks_cluster_role.arn
-
-  vpc_config {
-    subnet_ids = ["subnet-0db4b038e3e34bb51"]
-  }
-
-  version = "1.24"
-}
-
 # IAM Role for Node Group
 resource "aws_iam_role" "eks_node_role" {
   name = "eks-node-role"
@@ -90,12 +78,44 @@ resource "aws_iam_role_policy_attachment" "eks_worker_node_policy" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy"
 }
 
+resource "aws_iam_role_policy_attachment" "eks_cni_policy" {
+  role       = aws_iam_role.eks_node_role.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"
+}
+
+resource "aws_iam_role_policy_attachment" "eks_ecr_policy" {
+  role       = aws_iam_role.eks_node_role.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
+}
+
+# EKS Cluster (must specify at least 2 subnets)
+resource "aws_eks_cluster" "eks" {
+  name     = "in28minutes-cluster"
+  role_arn = aws_iam_role.eks_cluster_role.arn
+
+  vpc_config {
+    subnet_ids = [
+      "subnet-0db4b038e3e34bb51",
+      "subnet-0abcdef1234567890" # <-- Replace with your actual second subnet ID
+    ]
+  }
+
+  version = "1.24"
+
+  tags = {
+    Environment = "Production"
+  }
+}
+
 # EKS Managed Node Group
 resource "aws_eks_node_group" "default" {
   cluster_name    = aws_eks_cluster.eks.name
   node_group_name = "default-node-group"
   node_role_arn   = aws_iam_role.eks_node_role.arn
-  subnet_ids      = ["subnet-0db4b038e3e34bb51"]
+  subnet_ids      = [
+    "subnet-0db4b038e3e34bb51",
+    "subnet-0abcdef1234567890" # <-- Replace with your actual second subnet ID
+  ]
 
   scaling_config {
     desired_size = 3
@@ -104,4 +124,8 @@ resource "aws_eks_node_group" "default" {
   }
 
   instance_types = ["t2.micro"]
+
+  tags = {
+    Environment = "Production"
+  }
 }
