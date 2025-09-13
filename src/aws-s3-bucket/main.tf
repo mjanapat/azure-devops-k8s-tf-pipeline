@@ -67,6 +67,11 @@ resource "aws_eks_cluster" "eks" {
   }
 
   version = "1.24"
+
+  tags = {
+    Environment = "Dev"
+    Owner       = "Maruthi"
+  }
 }
 
 # IAM Role for Node Group
@@ -90,6 +95,16 @@ resource "aws_iam_role_policy_attachment" "eks_worker_node_policy" {
   policy_arn = "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy"
 }
 
+resource "aws_iam_role_policy_attachment" "eks_cni_policy" {
+  role       = aws_iam_role.eks_node_role.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"
+}
+
+resource "aws_iam_role_policy_attachment" "eks_registry_policy" {
+  role       = aws_iam_role.eks_node_role.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
+}
+
 # EKS Managed Node Group
 resource "aws_eks_node_group" "default" {
   cluster_name    = aws_eks_cluster.eks.name
@@ -104,4 +119,15 @@ resource "aws_eks_node_group" "default" {
   }
 
   instance_types = ["t2.micro"]
+
+  depends_on = [
+    aws_iam_role_policy_attachment.eks_worker_node_policy,
+    aws_iam_role_policy_attachment.eks_cni_policy,
+    aws_iam_role_policy_attachment.eks_registry_policy
+  ]
+
+  tags = {
+    Environment = "Dev"
+    Owner       = "Maruthi"
+  }
 }
