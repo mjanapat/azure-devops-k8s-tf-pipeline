@@ -43,6 +43,6 @@ module "eks_cluster" {
   cluster_version = "1.24"
   subnet_ids      = [
     "subnet-0db4b038e3e34bb51",
-    "subnet-0abcdef1234567890" # Replace with your actual subnet ID
+    "subnet-093a6749a1cd59553" # Replace with your actual subnet ID
   ]
 }
