@@ -1,7 +1,18 @@
 terraform {
+  required_providers {
+    aws = {
+      source  = "hashicorp/aws"
+      version = "~> 5.0"
+    }
+    kubernetes = {
+      source  = "hashicorp/kubernetes"
+      version = "~> 2.12"
+    }
+  }
+
   backend "s3" {
-    bucket = "terraform-bakcend-bucket1"
-    key    = "path/to/my/key"
+    bucket = "terraform-backend-bucket1"
+    key    = "eks/terraform.tfstate"
     region = "us-east-1"
   }
 }
@@ -12,18 +23,18 @@ provider "aws" {
 
 resource "aws_default_vpc" "default" {}
 
-data "aws_subnet_ids" "subnets" {
+data "aws_subnet_ids" "default_subnets" {
   vpc_id = aws_default_vpc.default.id
 }
 
 module "eks_cluster" {
   source  = "terraform-aws-modules/eks/aws"
-  version = "21.0.0"  # Use latest stable version
+  version = "21.0.0"
 
   cluster_name    = "in28minutes-cluster"
   cluster_version = "1.24"
-  vpc_id          = "vpc-0e1c1265410fcb664"
-  subnet_ids      = ["subnet-0db4b038e3e34bb51", "subnet-093a6749a1cd59553"]
+  vpc_id          = aws_default_vpc.default.id
+  subnet_ids      = data.aws_subnet_ids.default_subnets.ids
 
   enable_cluster_creator_admin_permissions = true
 
@@ -34,6 +45,11 @@ module "eks_cluster" {
       min_size        = 3
       instance_types  = ["t2.micro"]
     }
+  }
+
+  tags = {
+    Environment = "Dev"
+    Owner       = "Maruthi"
   }
 }
 
@@ -49,18 +65,19 @@ provider "kubernetes" {
   host                   = data.aws_eks_cluster.cluster.endpoint
   cluster_ca_certificate = base64decode(data.aws_eks_cluster.cluster.certificate_authority.0.data)
   token                  = data.aws_eks_cluster_auth.cluster.token
-  version                = "~> 2.12"
 }
 
-resource "kubernetes_cluster_role_binding" "example" {
+resource "kubernetes_cluster_role_binding" "ci_cd_access" {
   metadata {
     name = "fabric8-rbac"
   }
+
   role_ref {
     api_group = "rbac.authorization.k8s.io"
     kind      = "ClusterRole"
     name      = "cluster-admin"
   }
+
   subject {
     kind      = "ServiceAccount"
     name      = "default"
