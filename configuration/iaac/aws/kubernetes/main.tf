@@ -3,14 +3,14 @@
 # Uses default VPC and Subnet. Create Your Own VPC and Private Subnets for Prod Usage.
 # terraform-backend-state-in28minutes-123
 # AKIA4AHVNOD7OOO6T4KI
-#arn:aws:s3:::terraform-bakcend-bucket
+#arn:aws:s3:::terraform-bakcend-bucket1
 
 
 terraform {
   backend "s3" {
-    bucket = "terraform-bakcend-bucket" # Will be overridden from build
+    bucket = "terraform-bakcend-bucket1" # Will be overridden from build
     key    = "path/to/my/key" # Will be overridden from build
-    region = "ap-south-1"
+    region = "us-east-1"
   }
 }
 
