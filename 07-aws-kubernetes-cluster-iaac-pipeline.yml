@@ -15,7 +15,7 @@ steps:
 - task: TerraformInstaller@1
   displayName: 'Install Terraform'
   inputs:
-    terraformVersion: 'latest'
+    terraformVersion: '1.7.5'
 - task: TerraformTask@5
   inputs:
     provider: 'aws'
